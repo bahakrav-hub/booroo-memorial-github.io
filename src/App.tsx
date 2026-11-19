@@ -12,7 +12,14 @@ import {
   initFrameBusting,
   initConsoleWarning,
 } from './utils/security';
-import { saveToStorage, loadFromStorage, STORAGE_KEYS, getGitHubConfig, manualSyncToGitHub } from './utils/storage';
+import {
+  saveToStorage,
+  loadFromStorage,
+  STORAGE_KEYS,
+  getGitHubConfig,
+  autoSyncToGitHub,
+  manualSyncToGitHub,
+} from './utils/storage';
 
 interface MemoryEntry {
   id: number;
@@ -21,19 +28,7 @@ interface MemoryEntry {
   date: string;
 }
 
-const initialMemories: MemoryEntry[] = []
-  {
-      useEffect(() => {
-    const syncMemoriesFromStorage = () => {
-      const saved = loadFromStorage<MemoryEntry[] | null>(STORAGE_KEYS.MEMORIES, null);
-      if (saved !== null) {
-        setMemories(saved);
-      }
-    };
-    window.addEventListener('storage', syncMemoriesFromStorage);
-    return () => window.removeEventListener('storage', syncMemoriesFromStorage);
-  }, []);
-];
+const initialMemories: MemoryEntry[] = [];
 
 function App() {
   return (
@@ -64,6 +59,17 @@ function AppContent() {
   useEffect(() => {
     initFrameBusting();
     initConsoleWarning();
+  }, []);
+
+  useEffect(() => {
+    const syncMemoriesFromStorage = () => {
+      const saved = loadFromStorage<MemoryEntry[] | null>(STORAGE_KEYS.MEMORIES, null);
+      if (saved !== null) {
+        setMemories(saved);
+      }
+    };
+    window.addEventListener('storage', syncMemoriesFromStorage);
+    return () => window.removeEventListener('storage', syncMemoriesFromStorage);
   }, []);
 
   useEffect(() => {
@@ -99,6 +105,20 @@ function AppContent() {
       setTimeout(() => setShowSaveNotification(false), 3000);
     }
   };
+
+  const handleDeleteMemory = useCallback((id: number) => {
+    if (!window.confirm('Удалить эту запись со стены памяти для всех пользователей?')) {
+      return;
+    }
+    const updatedMemories = memories.filter((item) => item.id !== id);
+    setMemories(updatedMemories);
+    saveToStorage(STORAGE_KEYS.MEMORIES, updatedMemories);
+
+    const githubConfig = getGitHubConfig();
+    if (githubConfig?.token) {
+      autoSyncToGitHub(githubConfig).catch(console.error);
+    }
+  }, [memories]);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -149,18 +169,15 @@ function AppContent() {
           >
             {isEditing ? '✎ Режим редактирования' : '⚙ Админ'}
           </button>
-          {/* Кнопка явного сохранения */}
           <button
             onClick={handleSaveAll}
             className="px-3 py-1.5 rounded text-xs font-condensed font-bold uppercase tracking-wider transition-all bg-gold/20 border border-gold/40 text-gold hover:bg-gold/30"
           >
             💾 Сохранить всё
           </button>
-          {/* Индикатор автосохранения */}
           <div className="bg-dark-green/90 border border-gold/30 text-paper text-xs font-condensed px-2 py-1 rounded shadow-lg">
             <span className="text-green-400">●</span> Автосохранение активно
           </div>
-          {/* Подсказка в режиме редактирования */}
           {isEditing && (
             <div className="bg-gold/90 text-dark-green text-xs font-condensed px-3 py-2 rounded shadow-lg max-w-xs">
               <p className="font-bold mb-1">✎ Режим редактирования активен</p>
@@ -175,7 +192,6 @@ function AppContent() {
         </div>
       )}
 
-      {/* Уведомление о сохранении */}
       {showSaveNotification && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-6 py-3 rounded-lg shadow-2xl font-condensed font-bold animate-fade-in">
           ✓ Все изменения сохранены
