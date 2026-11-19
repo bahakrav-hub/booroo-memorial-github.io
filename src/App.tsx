@@ -21,31 +21,18 @@ interface MemoryEntry {
   date: string;
 }
 
-const initialMemories: MemoryEntry[] = [
+const initialMemories: MemoryEntry[] = []
   {
-    id: 1,
-    name: 'Потомки Софроновых',
-    message: 'Дедушка, мы помним твой подвиг. Твоя отвага живёт в наших сердцах. Спасибо за мирное небо над головой.',
-    date: '9 мая 2024',
-  },
-  {
-    id: 2,
-    name: 'Ученики школы №12, Якутск',
-    message: 'Мы узнали о вас на уроке мужества. Вы — настоящий герой! Мы гордимся, что учимся в вашем городе.',
-    date: '23 февраля 2024',
-  },
-  {
-    id: 3,
-    name: 'Ветеранский совет г. Якутска',
-    message: 'Прокопий Афанасьевич был примером для всех нас. Его боевой путь от Якутии до Берлина — это история несломленного духа якутского народа.',
-    date: '9 мая 2023',
-  },
-  {
-    id: 4,
-    name: 'Краевед Иван Петров',
-    message: 'Исследуя архивы ЦАМО, я был поражён записями о боях, в которых участвовал Боороо. Его имя заслуживает того, чтобы его помнили вечно.',
-    date: '22 июня 2023',
-  },
+      useEffect(() => {
+    const syncMemoriesFromStorage = () => {
+      const saved = loadFromStorage<MemoryEntry[] | null>(STORAGE_KEYS.MEMORIES, null);
+      if (saved !== null) {
+        setMemories(saved);
+      }
+    };
+    window.addEventListener('storage', syncMemoriesFromStorage);
+    return () => window.removeEventListener('storage', syncMemoriesFromStorage);
+  }, []);
 ];
 
 function App() {
