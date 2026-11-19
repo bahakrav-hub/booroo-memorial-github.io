@@ -18,6 +18,41 @@ interface MediaUploadProps {
   label?: string;
 }
 
+function compressImage(file: File, maxWidth = 1000, quality = 0.75): Promise<{ dataUrl: string; size: number }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Ошибка обработки изображения'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        const size = Math.round((dataUrl.length * 3) / 4);
+        resolve({ dataUrl, size });
+      };
+      img.onerror = () => reject(new Error('Ошибка загрузки изображения'));
+      img.src = event.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Ошибка чтения файла'));
+    reader.readAsDataURL(file);
+  });
+}
+
 export function MediaUpload({ section, type, label = 'Загрузить медиа' }: MediaUploadProps) {
   const { isAuthenticated } = useAuth();
   const [media, setMedia] = useState<MediaItem[]>(() => getMediaBySection(section));
@@ -58,13 +93,23 @@ export function MediaUpload({ section, type, label = 'Загрузить мед�
 
     setIsLoading(true);
     try {
-      const dataUrl = await fileToDataUrl(file);
+      let dataUrl: string;
+      let finalSize = file.size;
+
+      if (mediaType === 'image' && file.type !== 'image/gif') {
+        const compressed = await compressImage(file);
+        dataUrl = compressed.dataUrl;
+        finalSize = compressed.size;
+      } else {
+        dataUrl = await fileToDataUrl(file);
+      }
+
       const item: MediaItem = {
         id: `${section}-${Date.now()}`,
         name: file.name,
         type: mediaType,
         dataUrl,
-        size: file.size,
+        size: finalSize,
         uploadedAt: new Date().toISOString(),
         section,
       };
@@ -91,7 +136,7 @@ export function MediaUpload({ section, type, label = 'Загрузить мед�
 
   if (!isAuthenticated) {
     return (
-      <div className="mt-4">
+      <div className="mt-4 space-y-3">
         {media.map((item) => (
           <MediaPreview key={item.id} item={item} />
         ))}
@@ -129,7 +174,7 @@ export function MediaUpload({ section, type, label = 'Загрузить мед�
           </span>
         </label>
         {isLoading && (
-          <div className="mt-2 text-gold text-sm">Загрузка...</div>
+          <div className="mt-2 text-gold text-sm">Загрузка и сжатие...</div>
         )}
         {error && (
           <div className="mt-2 text-army-red text-sm">⚠️ {error}</div>
