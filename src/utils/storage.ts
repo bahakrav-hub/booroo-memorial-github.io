@@ -133,68 +133,77 @@ export function getGitHubConfig(): GitHubConfig | null {
   return cfg ? cleanConfig(cfg) : null;
 }
 
+let syncQueue: Promise<unknown> = Promise.resolve();
+
 export async function pushToGitHub(
   rawConfig: GitHubConfig,
   filePath: string,
   content: string,
   message: string
 ): Promise<{ success: boolean; error?: string }> {
-  try {
-    const config = cleanConfig(rawConfig);
-    const cleanPath = filePath.replace(/^\/+/, '');
-    const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${cleanPath}`;
+  const task = async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const config = cleanConfig(rawConfig);
+      const cleanPath = filePath.replace(/^\/+/, '');
+      const url = `https://github.com{config.owner}/${config.repo}/contents/${cleanPath}`;
 
-    const sendPut = async () => {
-      let sha: string | undefined;
-      try {
-        const getResp = await fetch(`${url}?ref=${config.branch}&t=${Date.now()}`, {
-          cache: 'no-store',
+      const sendPut = async () => {
+        let sha: string | undefined;
+        try {
+          const getResp = await fetch(`${url}?ref=${config.branch}&t=${Date.now()}`, {
+            cache: 'no-store',
+            headers: {
+              Authorization: `Bearer ${config.token}`,
+              Accept: 'application/vnd.github.v3+json',
+            },
+          });
+          if (getResp.ok) {
+            const getData = await getResp.json();
+            sha = getData.sha;
+          }
+        } catch {
+          // Файл еще не существует
+        }
+
+        const body: Record<string, string> = {
+          message,
+          content: btoa(unescape(encodeURIComponent(content))),
+          branch: config.branch,
+        };
+        if (sha) body.sha = sha;
+
+        return fetch(url, {
+          method: 'PUT',
           headers: {
             Authorization: `Bearer ${config.token}`,
             Accept: 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json',
           },
+          body: JSON.stringify(body),
         });
-        if (getResp.ok) {
-          const getData = await getResp.json();
-          sha = getData.sha;
-        }
-      } catch {
-        // Файл еще не существует
+      };
+
+      let resp = await sendPut();
+
+      if (resp.status === 409 || resp.status === 422) {
+        await new Promise((r) => setTimeout(r, 800));
+        resp = await sendPut();
       }
 
-      const body: Record<string, string> = {
-        message,
-        content: btoa(unescape(encodeURIComponent(content))),
-        branch: config.branch,
-      };
-      if (sha) body.sha = sha;
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => null);
+        return { success: false, error: errData?.message || `HTTP ${resp.status}` };
+      }
 
-      return fetch(url, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${config.token}`,
-          Accept: 'application/vnd.github.v3+json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
-    };
-
-    let resp = await sendPut();
-
-    if (resp.status === 409) {
-      resp = await sendPut();
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: (e as Error).message };
     }
+  };
 
-    if (!resp.ok) {
-      const errData = await resp.json().catch(() => null);
-      return { success: false, error: errData?.message || `HTTP ${resp.status}` };
-    }
-
-    return { success: true };
-  } catch (e) {
-    return { success: false, error: (e as Error).message };
-  }
+  const resultPromise = syncQueue.then(task, task);
+  syncQueue = resultPromise.catch(() => {});
+  return resultPromise;
 }
 
 export async function pullFromGitHub(
@@ -204,7 +213,7 @@ export async function pullFromGitHub(
   try {
     const config = cleanConfig(rawConfig);
     const cleanPath = filePath.replace(/^\/+/, '');
-    const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${cleanPath}?ref=${config.branch}&t=${Date.now()}`;
+    const url = `https://github.com{config.owner}/${config.repo}/contents/${cleanPath}?ref=${config.branch}&t=${Date.now()}`;
     const resp = await fetch(url, {
       cache: 'no-store',
       headers: {
