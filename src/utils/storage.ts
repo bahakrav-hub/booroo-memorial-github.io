@@ -87,8 +87,7 @@ export function saveMedia(item: MediaItem): void {
   const filtered = existing.filter(m => !(m.section === item.section && m.id === item.id));
   filtered.push(item);
   saveToStorage(STORAGE_KEYS.MEDIA, filtered);
-  
-  // Автоматическая синхронизация с GitHub если настроен
+
   const githubConfig = getGitHubConfig();
   if (githubConfig?.token) {
     autoSyncToGitHub(githubConfig).catch(console.error);
@@ -116,22 +115,34 @@ export interface GitHubConfig {
   branch: string;
 }
 
+function cleanConfig(config: GitHubConfig): GitHubConfig {
+  return {
+    token: config.token.trim(),
+    owner: config.owner.trim().replace(/^\/+|\/+$/g, ''),
+    repo: config.repo.trim().replace(/^\/+|\/+$/g, ''),
+    branch: (config.branch || 'main').trim(),
+  };
+}
+
 export function saveGitHubConfig(config: GitHubConfig): void {
-  saveToStorage(STORAGE_KEYS.GITHUB_CONFIG, config);
+  saveToStorage(STORAGE_KEYS.GITHUB_CONFIG, cleanConfig(config));
 }
 
 export function getGitHubConfig(): GitHubConfig | null {
-  return loadFromStorage<GitHubConfig | null>(STORAGE_KEYS.GITHUB_CONFIG, null);
+  const cfg = loadFromStorage<GitHubConfig | null>(STORAGE_KEYS.GITHUB_CONFIG, null);
+  return cfg ? cleanConfig(cfg) : null;
 }
 
 export async function pushToGitHub(
-  config: GitHubConfig,
+  rawConfig: GitHubConfig,
   filePath: string,
   content: string,
   message: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`;
+    const config = cleanConfig(rawConfig);
+    const cleanPath = filePath.replace(/^\/+/, '');
+    const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${cleanPath}`;
 
     let sha: string | undefined;
     try {
@@ -146,7 +157,7 @@ export async function pushToGitHub(
         sha = getData.sha;
       }
     } catch {
-      // File doesn't exist yet
+      // Файл еще не существует
     }
 
     const body: Record<string, string> = {
@@ -178,11 +189,13 @@ export async function pushToGitHub(
 }
 
 export async function pullFromGitHub(
-  config: GitHubConfig,
+  rawConfig: GitHubConfig,
   filePath: string
 ): Promise<{ success: boolean; content?: string; error?: string }> {
   try {
-    const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}?ref=${config.branch}`;
+    const config = cleanConfig(rawConfig);
+    const cleanPath = filePath.replace(/^\/+/, '');
+    const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${cleanPath}?ref=${config.branch}`;
     const resp = await fetch(url, {
       headers: {
         Authorization: `Bearer ${config.token}`,
@@ -195,7 +208,7 @@ export async function pullFromGitHub(
     }
 
     const data = await resp.json();
-    const content = decodeURIComponent(escape(atob(data.content)));
+    const content = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ''))));
     return { success: true, content };
   } catch (e) {
     return { success: false, error: (e as Error).message };
@@ -233,7 +246,7 @@ export async function autoSyncToGitHub(config: GitHubConfig): Promise<void> {
     const data = exportAllData();
     await pushToGitHub(
       config,
-      'data/site-content.json',
+      'public/data/site-content.json',
       data,
       `Auto-sync: ${new Date().toLocaleString('ru-RU')}`
     );
@@ -247,7 +260,7 @@ export async function manualSyncToGitHub(config: GitHubConfig): Promise<{ succes
     const data = exportAllData();
     const result = await pushToGitHub(
       config,
-      'data/site-content.json',
+      'public/data/site-content.json',
       data,
       `Manual sync: ${new Date().toLocaleString('ru-RU')}`
     );
