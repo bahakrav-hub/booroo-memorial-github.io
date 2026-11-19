@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { saveToStorage, loadFromStorage, STORAGE_KEYS, getGitHubConfig, autoSyncToGitHub } from '../utils/storage';
 
 export interface SiteContent {
@@ -178,6 +178,57 @@ export function ContentProvider({ children }: { children: ReactNode }) {
   );
   const [isEditing, setIsEditing] = useState(false);
 
+  // Загрузка актуальных данных из репозитория для всех посетителей
+  useEffect(() => {
+    const syncRemoteContent = async () => {
+      try {
+        const baseUrl = import.meta.env.BASE_URL || '/';
+        const response = await fetch(`${baseUrl}data/site-content.json?t=${Date.now()}`, {
+          cache: 'no-store',
+        });
+        if (!response.ok) return;
+
+        const remoteData = await response.json();
+        let hasChanges = false;
+
+        if (remoteData.content) {
+          const currentLocal = JSON.stringify(loadFromStorage(STORAGE_KEYS.CONTENT, null));
+          const incomingRemote = JSON.stringify(remoteData.content);
+          if (currentLocal !== incomingRemote) {
+            setContent(remoteData.content);
+            saveToStorage(STORAGE_KEYS.CONTENT, remoteData.content);
+          }
+        }
+
+        if (Array.isArray(remoteData.media)) {
+          const currentMedia = JSON.stringify(loadFromStorage(STORAGE_KEYS.MEDIA, []));
+          const incomingMedia = JSON.stringify(remoteData.media);
+          if (currentMedia !== incomingMedia) {
+            saveToStorage(STORAGE_KEYS.MEDIA, remoteData.media);
+            hasChanges = true;
+          }
+        }
+
+        if (Array.isArray(remoteData.memories)) {
+          const currentMemories = JSON.stringify(loadFromStorage(STORAGE_KEYS.MEMORIES, []));
+          const incomingMemories = JSON.stringify(remoteData.memories);
+          if (currentMemories !== incomingMemories) {
+            saveToStorage(STORAGE_KEYS.MEMORIES, remoteData.memories);
+            hasChanges = true;
+          }
+        }
+
+        if (hasChanges) {
+          window.dispatchEvent(new Event('storage'));
+        }
+      } catch {
+        // Если файла еще нет или нет сети, используем локальные данные
+      }
+    };
+
+    syncRemoteContent();
+  }, []);
+
   const updateContent = useCallback((path: string, value: unknown) => {
     setContent(prev => {
       const newContent = JSON.parse(JSON.stringify(prev));
@@ -204,13 +255,12 @@ export function ContentProvider({ children }: { children: ReactNode }) {
         obj[lastKey] = value;
       }
       saveToStorage(STORAGE_KEYS.CONTENT, newContent);
-      
-      // Автоматическая синхронизация с GitHub если настроен
+
       const githubConfig = getGitHubConfig();
       if (githubConfig?.token) {
         autoSyncToGitHub(githubConfig).catch(console.error);
       }
-      
+
       return newContent;
     });
   }, []);
