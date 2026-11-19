@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   validateFile,
@@ -7,6 +7,8 @@ import {
   saveMedia,
   removeMedia,
   getMediaBySection,
+  getGitHubConfig,
+  autoSyncToGitHub,
   MediaItem,
 } from '../utils/storage';
 
@@ -23,9 +25,15 @@ export function MediaUpload({ section, type, label = 'Загрузить мед�
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const refreshMedia = () => {
+  const refreshMedia = useCallback(() => {
     setMedia(getMediaBySection(section));
-  };
+  }, [section]);
+
+  useEffect(() => {
+    refreshMedia();
+    window.addEventListener('storage', refreshMedia);
+    return () => window.removeEventListener('storage', refreshMedia);
+  }, [refreshMedia]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -75,6 +83,10 @@ export function MediaUpload({ section, type, label = 'Загрузить мед�
   const handleRemove = (id: string) => {
     removeMedia(id);
     refreshMedia();
+    const githubConfig = getGitHubConfig();
+    if (githubConfig?.token) {
+      autoSyncToGitHub(githubConfig).catch(console.error);
+    }
   };
 
   if (!isAuthenticated) {
@@ -165,6 +177,7 @@ function MediaPreview({ item }: { item: MediaItem }) {
     <video
       src={item.dataUrl}
       controls
+      playsInline
       className="w-full max-h-80 rounded border border-gold/20 bg-dark-green/50"
     >
       Ваш браузер не поддерживает видео.
