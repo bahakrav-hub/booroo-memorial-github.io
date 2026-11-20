@@ -17,9 +17,11 @@ import {
   loadFromStorage,
   STORAGE_KEYS,
   getGitHubConfig,
-  autoSyncToGitHub,
   manualSyncToGitHub,
 } from './utils/storage';
+
+const SUPABASE_URL = 'https://supabase.co';
+const SUPABASE_KEY = 'sb_publishable_CtWVccE6keJLSoP1KizH3A_uM0sLED-';
 
 interface MemoryEntry {
   id: number;
@@ -61,15 +63,28 @@ function AppContent() {
     initConsoleWarning();
   }, []);
 
+  // Загрузка записей из общей базы Supabase при открытии сайта
   useEffect(() => {
-    const syncMemoriesFromStorage = () => {
-      const saved = loadFromStorage<MemoryEntry[] | null>(STORAGE_KEYS.MEMORIES, null);
-      if (saved !== null) {
-        setMemories(saved);
+    const fetchMemories = async () => {
+      try {
+        const res = await fetch(`${SUPABASE_URL}?select=*&order=id.desc`, {
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setMemories(data);
+            saveToStorage(STORAGE_KEYS.MEMORIES, data);
+          }
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки записей из Supabase:', err);
       }
     };
-    window.addEventListener('storage', syncMemoriesFromStorage);
-    return () => window.removeEventListener('storage', syncMemoriesFromStorage);
+    fetchMemories();
   }, []);
 
   useEffect(() => {
@@ -106,21 +121,7 @@ function AppContent() {
     }
   };
 
-  const handleDeleteMemory = useCallback((id: number) => {
-    if (!window.confirm('Удалить эту запись со стены памяти для всех пользователей?')) {
-      return;
-    }
-    const updatedMemories = memories.filter((item) => item.id !== id);
-    setMemories(updatedMemories);
-    saveToStorage(STORAGE_KEYS.MEMORIES, updatedMemories);
-
-    const githubConfig = getGitHubConfig();
-    if (githubConfig?.token) {
-      autoSyncToGitHub(githubConfig).catch(console.error);
-    }
-  }, [memories]);
-
-  const handleSubmit = useCallback((e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setFormErrors([]);
 
@@ -135,20 +136,52 @@ function AppContent() {
 
     recordAttempt();
 
-    const newEntry: MemoryEntry = {
-      id: Date.now(),
-      name: validation.sanitizedName!,
-      message: validation.sanitizedMessage!,
-      date: new Date().toLocaleDateString('ru-RU', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      }),
-    };
+    const dateStr = new Date().toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
 
-    const newMemories = [newEntry, ...memories];
-    setMemories(newMemories);
-    saveToStorage(STORAGE_KEYS.MEMORIES, newMemories);
+    try {
+      const res = await fetch(SUPABASE_URL, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation',
+        },
+        body: JSON.stringify({
+          name: validation.sanitizedName!,
+          message: validation.sanitizedMessage!,
+          date: dateStr,
+        }),
+      });
+
+      if (res.ok) {
+        const created = await res.json();
+        const savedEntry: MemoryEntry =
+          Array.isArray(created) && created.length > 0
+            ? created[0]
+            : {
+                id: Date.now(),
+                name: validation.sanitizedName!,
+                message: validation.sanitizedMessage!,
+                date: dateStr,
+              };
+        const newMemories = [savedEntry, ...memories];
+        setMemories(newMemories);
+        saveToStorage(STORAGE_KEYS.MEMORIES, newMemories);
+      } else {
+        alert('Не удалось отправить запись. Проверьте подключение к сети.');
+        return;
+      }
+    } catch (err) {
+      console.error('Ошибка сохранения записи:', err);
+      alert('Ошибка сети при отправке записи.');
+      return;
+    }
+
     setFormData({ name: '', message: '' });
     setIsSubmitted(true);
     setRemainingAttempts(getRemainingAttempts());
@@ -375,11 +408,9 @@ function AppContent() {
               </p>
             </div>
 
-            {isAuthenticated && (
-              <div className="mb-6">
-                <MediaUpload section="dossier" type="image" label="Загрузить фото из архива" />
-              </div>
-            )}
+            <div className="mb-6">
+              <MediaUpload section="dossier" type="image" label="Загрузить фото из архива" />
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               <div className="space-y-3">
@@ -466,28 +497,6 @@ function AppContent() {
               <EditableText
                 path="dossier.footerNote"
                 value={content.dossier.footerNote}
-                className="font-slab text-ink/50 text-xs italic block"
-                multiline
-              />
-            </div>
-          </div>
-
-          <div className="text-center mt-8">
-            <a
-              href="https://pamyat-naroda.ru"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-khaki border border-gold/30 text-gold font-condensed font-bold uppercase tracking-wider text-sm rounded hover:bg-khaki/80 hover:border-gold transition-all duration-300"
-            >
-              🔍 Проверить на сайте «Память Народа»
-              <span className="text-xs">↗</span>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <div className="george-ribbon"></div>
-
       {/* TIMELINE SECTION */}
       <section id="timeline" className="py-16 md:py-24 px-4 bg-khaki/30">
         <div className="max-w-5xl mx-auto">
@@ -545,7 +554,6 @@ function AppContent() {
                     }`}
                   >
                     <div className="bg-dark-green/80 border border-gold/20 rounded-lg p-5 pr-14 md:pr-5 hover:border-gold/40 transition-all duration-300 hover:shadow-lg hover:shadow-gold/5 relative overflow-visible">
-                      {/* Кнопка удаления (всегда видна в режиме редактирования) */}
                       {isEditing && (
                         <button
                           onClick={(e) => {
@@ -608,7 +616,6 @@ function AppContent() {
           </div>
 
           <div className="text-center mt-12 space-y-4">
-            {/* Кнопка добавления события (только для админа в режиме редактирования) */}
             {isEditing && (
               <button
                 onClick={() => {
@@ -706,7 +713,6 @@ function AppContent() {
               <div>
                 <label htmlFor="memory-message" className="block font-condensed text-gold text-sm uppercase tracking-wider mb-2">
                   {content.memory.messageLabel}
-                </label>
                 <textarea
                   id="memory-message"
                   value={formData.message}
@@ -763,14 +769,24 @@ function AppContent() {
                 key={entry.id}
                 className="memory-card rounded-lg p-5 pr-14 md:pr-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 relative overflow-visible"
               >
-                {/* Кнопка удаления (всегда видна для админа) */}
                 {isAuthenticated && (
                   <button
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      if (window.confirm(`Удалить запись от "${entry.name}"?`)) {
-                        const newMemories = memories.filter(m => m.id !== entry.id);
+                      if (window.confirm(`Удалить запись от "${entry.name}" для всех пользователей?`)) {
+                        try {
+                          await fetch(`${SUPABASE_URL}?id=eq.${entry.id}`, {
+                            method: 'DELETE',
+                            headers: {
+                              apikey: SUPABASE_KEY,
+                              Authorization: `Bearer ${SUPABASE_KEY}`,
+                            },
+                          });
+                        } catch (err) {
+                          console.error('Ошибка удаления:', err);
+                        }
+                        const newMemories = memories.filter((m) => m.id !== entry.id);
                         setMemories(newMemories);
                         saveToStorage(STORAGE_KEYS.MEMORIES, newMemories);
                       }
