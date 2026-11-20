@@ -13,7 +13,6 @@ export async function getRemoteMemories(): Promise<RemoteMemory[] | null> {
     const res = await fetch(SUPABASE_URL + '?select=*&order=id.desc', {
       headers: {
         apikey: SUPABASE_KEY,
-        Authorization: 'Bearer ' + SUPABASE_KEY,
       },
     });
     if (!res.ok) return null;
@@ -34,15 +33,19 @@ export async function addRemoteMemory(
       method: 'POST',
       headers: {
         apikey: SUPABASE_KEY,
-        Authorization: 'Bearer ' + SUPABASE_KEY,
         'Content-Type': 'application/json',
         Prefer: 'return=representation',
       },
-      body: JSON.stringify({ name, message, date }),
+      body: JSON.stringify({
+        id: Date.now(),
+        name,
+        message,
+        date,
+      }),
     });
     if (!res.ok) return null;
     const created = await res.json();
-    return Array.isArray(created) && created.length > 0 ? created[0] : null;
+    return Array.isArray(created) && created.length > 0 ? created : null;
   } catch {
     return null;
   }
@@ -54,7 +57,6 @@ export async function deleteRemoteMemory(id: number): Promise<boolean> {
       method: 'DELETE',
       headers: {
         apikey: SUPABASE_KEY,
-        Authorization: 'Bearer ' + SUPABASE_KEY,
       },
     });
     return res.ok;
