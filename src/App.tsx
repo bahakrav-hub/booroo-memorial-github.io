@@ -381,7 +381,6 @@ function AppContent() {
               <div className="mb-6">
                 <MediaUpload section="dossier" type="image" label="Загрузить фото из архива" />
               </div>
-            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               <div className="space-y-3">
