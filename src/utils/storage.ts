@@ -139,8 +139,7 @@ export async function pushToGitHub(
     try {
       const config = cleanConfig(rawConfig);
       const cleanPath = filePath.replace(/^\/+/, '');
-      const url = 'https://github.com' + config.owner + '/' + config.repo + '/contents/' + cleanPath;
-
+      const url = 'https://api.github.com/repos/' + config.owner + '/' + config.repo + '/contents/' + cleanPath;
 
       const sendPut = async () => {
         let sha: string | undefined;
@@ -198,7 +197,7 @@ export async function pushToGitHub(
 
   const resultPromise = syncQueue.then(task, task);
   syncQueue = resultPromise.catch(() => {});
-  return resultPromise;
+   return resultPromise;
 }
 
 export async function pullFromGitHub(
@@ -208,7 +207,7 @@ export async function pullFromGitHub(
   try {
     const config = cleanConfig(rawConfig);
     const cleanPath = filePath.replace(/^\/+/, '');
-    const url = 'https://github.com' + config.owner + '/' + config.repo + '/contents/' + cleanPath + '?ref=' + config.branch + '&t=' + Date.now();
+    const url = 'https://api.github.com/repos/' + config.owner + '/' + config.repo + '/contents/' + cleanPath + '?ref=' + config.branch + '&t=' + Date.now();
     const resp = await fetch(url, {
       cache: 'no-store',
       headers: {
