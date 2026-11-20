@@ -148,15 +148,6 @@
       "size": 105926,
       "uploadedAt": "2026-11-20T06:48:52.751Z",
       "section": "dossier"
-    },
-    {
-      "id": "hero-embed-1795159508171",
-      "name": "Видео по ссылке",
-      "type": "embed",
-      "dataUrl": "https://rutube.rurutube.ru/video/private,private",
-      "size": 0,
-      "uploadedAt": "2026-11-20T07:25:08.171Z",
-      "section": "hero"
     }
   ],
   "memories": [
@@ -168,6 +159,6 @@
       "date": "20 ноября 2026 г."
     }
   ],
-  "exportedAt": "2026-11-20T07:25:08.184Z",
+  "exportedAt": "2026-11-20T07:33:29.125Z",
   "version": "1.0"
 }
