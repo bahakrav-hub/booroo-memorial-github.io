@@ -141,6 +141,7 @@ export async function pushToGitHub(
       const cleanPath = filePath.replace(/^\/+/, '');
       const url = 'https://github.com' + config.owner + '/' + config.repo + '/contents/' + cleanPath;
 
+
       const sendPut = async () => {
         let sha: string | undefined;
         try {
