@@ -18,7 +18,6 @@ import {
   loadFromStorage,
   STORAGE_KEYS,
   getGitHubConfig,
-  autoSyncToGitHub,
   manualSyncToGitHub,
 } from './utils/storage';
 
@@ -116,21 +115,7 @@ function AppContent() {
     }
   };
 
-  const handleDeleteMemory = useCallback((id: number) => {
-    if (!window.confirm('Удалить эту запись со стены памяти для всех пользователей?')) {
-      return;
-    }
-    const updatedMemories = memories.filter((item) => item.id !== id);
-    setMemories(updatedMemories);
-    saveToStorage(STORAGE_KEYS.MEMORIES, updatedMemories);
-
-    const githubConfig = getGitHubConfig();
-    if (githubConfig?.token) {
-      autoSyncToGitHub(githubConfig).catch(console.error);
-    }
-  }, [memories]);
-
-  const handleSubmit = useCallback((e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setFormErrors([]);
 
@@ -145,15 +130,23 @@ function AppContent() {
 
     recordAttempt();
 
-    const newEntry: MemoryEntry = {
+    const dateStr = new Date().toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+
+    const saved = await addRemoteMemory(
+      validation.sanitizedName!,
+      validation.sanitizedMessage!,
+      dateStr
+    );
+
+    const newEntry: MemoryEntry = saved || {
       id: Date.now(),
       name: validation.sanitizedName!,
       message: validation.sanitizedMessage!,
-      date: new Date().toLocaleDateString('ru-RU', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      }),
+      date: dateStr,
     };
 
     const newMemories = [newEntry, ...memories];
@@ -163,6 +156,8 @@ function AppContent() {
     setIsSubmitted(true);
     setRemainingAttempts(getRemainingAttempts());
     setTimeout(() => setIsSubmitted(false), 3000);
+  }, [formData, memories]);
+
   }, [formData, memories]);
 
   return (
@@ -776,10 +771,11 @@ function AppContent() {
                 {/* Кнопка удаления (всегда видна для админа) */}
                 {isAuthenticated && (
                   <button
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       if (window.confirm(`Удалить запись от "${entry.name}"?`)) {
+                        await deleteRemoteMemory(entry.id);
                         const newMemories = memories.filter(m => m.id !== entry.id);
                         setMemories(newMemories);
                         saveToStorage(STORAGE_KEYS.MEMORIES, newMemories);
