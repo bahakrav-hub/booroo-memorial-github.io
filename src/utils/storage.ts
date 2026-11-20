@@ -37,9 +37,6 @@ export function removeFromStorage(key: string): void {
   }
 }
 
-// ============================================================================
-// Media Storage (Base64)
-// ============================================================================
 export interface MediaItem {
   id: string;
   name: string;
@@ -105,9 +102,6 @@ export function removeMedia(id: string): void {
   saveToStorage(STORAGE_KEYS.MEDIA, filtered);
 }
 
-// ============================================================================
-// GitHub Integration
-// ============================================================================
 export interface GitHubConfig {
   token: string;
   owner: string;
@@ -145,15 +139,15 @@ export async function pushToGitHub(
     try {
       const config = cleanConfig(rawConfig);
       const cleanPath = filePath.replace(/^\/+/, '');
-      const url = `https://github.com{config.owner}/${config.repo}/contents/${cleanPath}`;
+      const url = 'https://github.com' + config.owner + '/' + config.repo + '/contents/' + cleanPath;
 
       const sendPut = async () => {
         let sha: string | undefined;
         try {
-          const getResp = await fetch(`${url}?ref=${config.branch}&t=${Date.now()}`, {
+          const getResp = await fetch(url + '?ref=' + config.branch + '&t=' + Date.now(), {
             cache: 'no-store',
             headers: {
-              Authorization: `Bearer ${config.token}`,
+              Authorization: 'Bearer ' + config.token,
               Accept: 'application/vnd.github.v3+json',
             },
           });
@@ -175,7 +169,7 @@ export async function pushToGitHub(
         return fetch(url, {
           method: 'PUT',
           headers: {
-            Authorization: `Bearer ${config.token}`,
+            Authorization: 'Bearer ' + config.token,
             Accept: 'application/vnd.github.v3+json',
             'Content-Type': 'application/json',
           },
@@ -192,7 +186,7 @@ export async function pushToGitHub(
 
       if (!resp.ok) {
         const errData = await resp.json().catch(() => null);
-        return { success: false, error: errData?.message || `HTTP ${resp.status}` };
+        return { success: false, error: errData?.message || 'HTTP ' + resp.status };
       }
 
       return { success: true };
@@ -213,17 +207,17 @@ export async function pullFromGitHub(
   try {
     const config = cleanConfig(rawConfig);
     const cleanPath = filePath.replace(/^\/+/, '');
-    const url = `https://github.com{config.owner}/${config.repo}/contents/${cleanPath}?ref=${config.branch}&t=${Date.now()}`;
+    const url = 'https://github.com' + config.owner + '/' + config.repo + '/contents/' + cleanPath + '?ref=' + config.branch + '&t=' + Date.now();
     const resp = await fetch(url, {
       cache: 'no-store',
       headers: {
-        Authorization: `Bearer ${config.token}`,
+        Authorization: 'Bearer ' + config.token,
         Accept: 'application/vnd.github.v3+json',
       },
     });
 
     if (!resp.ok) {
-      return { success: false, error: `HTTP ${resp.status}` };
+      return { success: false, error: 'HTTP ' + resp.status };
     }
 
     const data = await resp.json();
@@ -257,9 +251,6 @@ export function importAllData(json: string): { success: boolean; error?: string 
   }
 }
 
-// ============================================================================
-// Auto-sync to GitHub
-// ============================================================================
 export async function autoSyncToGitHub(config: GitHubConfig): Promise<void> {
   try {
     const data = exportAllData();
@@ -267,7 +258,7 @@ export async function autoSyncToGitHub(config: GitHubConfig): Promise<void> {
       config,
       'public/data/site-content.json',
       data,
-      `Auto-sync: ${new Date().toLocaleString('ru-RU')}`
+      'Auto-sync: ' + new Date().toLocaleString('ru-RU')
     );
   } catch (error) {
     console.error('Auto-sync failed:', error);
@@ -281,7 +272,7 @@ export async function manualSyncToGitHub(config: GitHubConfig): Promise<{ succes
       config,
       'public/data/site-content.json',
       data,
-      `Manual sync: ${new Date().toLocaleString('ru-RU')}`
+      'Manual sync: ' + new Date().toLocaleString('ru-RU')
     );
     return result;
   } catch (error) {
