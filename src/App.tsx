@@ -378,7 +378,6 @@ function AppContent() {
               </p>
             </div>
 
-            {isAuthenticated && (
               <div className="mb-6">
                 <MediaUpload section="dossier" type="image" label="Загрузить фото из архива" />
               </div>
