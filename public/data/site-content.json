@@ -148,6 +148,15 @@
       "size": 105926,
       "uploadedAt": "2026-11-20T06:48:52.751Z",
       "section": "dossier"
+    },
+    {
+      "id": "hero-embed-1795160619786",
+      "name": "Видео по ссылке",
+      "type": "embed",
+      "dataUrl": "https://rutube.ru/play/embed/3d6ae0056aff93baa0b86a9786208cf1?p=SGmw8Fq-ZDyo0WC_ZAPq9w",
+      "size": 0,
+      "uploadedAt": "2026-11-20T07:43:39.786Z",
+      "section": "hero"
     }
   ],
   "memories": [
@@ -159,6 +168,6 @@
       "date": "20 ноября 2026 г."
     }
   ],
-  "exportedAt": "2026-11-20T07:42:59.852Z",
+  "exportedAt": "2026-11-20T07:43:39.801Z",
   "version": "1.0"
 }
