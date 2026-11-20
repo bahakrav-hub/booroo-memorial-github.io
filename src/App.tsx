@@ -157,9 +157,7 @@ function AppContent() {
     setRemainingAttempts(getRemainingAttempts());
     setTimeout(() => setIsSubmitted(false), 3000);
   }, [formData, memories]);
-
-  }, [formData, memories]);
-
+  
   return (
     <div className="min-h-screen bg-dark-green text-paper">
       {isAuthenticated && (
