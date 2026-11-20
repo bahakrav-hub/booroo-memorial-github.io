@@ -18,6 +18,27 @@ interface MediaUploadProps {
   label?: string;
 }
 
+function getEmbedUrl(rawUrl: string): string | null {
+  const url = rawUrl.trim();
+  if (!url) return null;
+
+  const rutubeMatch = url.match(/rutube\.ru\/(?:video|play\/embed)\/([a-zA-Z0-9_-]+)/);
+  if (rutubeMatch && rutubeMatch) {
+    return 'https://rutube.ru' + rutubeMatch;
+  }
+
+  const vkMatch = url.match(/(?:vk\.com|vkvideo\.ru)\/(?:video|clip)(-?\d+)_(\d+)/);
+  if (vkMatch && vkMatch && vkMatch) {
+    return 'https://vk.com' + vkMatch + '&id=' + vkMatch + '&hd=2';
+  }
+
+  if (url.includes('video_ext.php') || url.includes('/play/embed/')) {
+    return url;
+  }
+
+  return null;
+}
+
 function compressImage(file: File, maxWidth = 1000, quality = 0.75): Promise<{ dataUrl: string; size: number }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -56,6 +77,7 @@ function compressImage(file: File, maxWidth = 1000, quality = 0.75): Promise<{ d
 export function MediaUpload({ section, type, label = 'Загрузить медиа' }: MediaUploadProps) {
   const { isAuthenticated } = useAuth();
   const [media, setMedia] = useState<MediaItem[]>(() => getMediaBySection(section));
+  const [videoUrl, setVideoUrl] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,7 +93,7 @@ export function MediaUpload({ section, type, label = 'Загрузить мед�
   }, [refreshMedia]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = e.target.files?.item(0);
     if (!file) return;
 
     setError('');
@@ -105,7 +127,7 @@ export function MediaUpload({ section, type, label = 'Загрузить мед�
       }
 
       const item: MediaItem = {
-        id: `${section}-${Date.now()}`,
+        id: section + '-' + Date.now(),
         name: file.name,
         type: mediaType,
         dataUrl,
@@ -125,6 +147,28 @@ export function MediaUpload({ section, type, label = 'Загрузить мед�
     }
   };
 
+  const handleAddVideoLink = () => {
+    setError('');
+    const embedUrl = getEmbedUrl(videoUrl);
+    if (!embedUrl) {
+      setError('Вставьте корректную ссылку на видео из VK Видео или Rutube');
+      return;
+    }
+
+    const item: MediaItem = {
+      id: section + '-embed-' + Date.now(),
+      name: 'Видео по ссылке',
+      type: 'embed',
+      dataUrl: embedUrl,
+      size: 0,
+      uploadedAt: new Date().toISOString(),
+      section,
+    };
+    saveMedia(item);
+    refreshMedia();
+    setVideoUrl('');
+  };
+
   const handleRemove = (id: string) => {
     removeMedia(id);
     refreshMedia();
@@ -136,7 +180,7 @@ export function MediaUpload({ section, type, label = 'Загрузить мед�
 
   if (!isAuthenticated) {
     return (
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 space-y-4">
         {media.map((item) => (
           <MediaPreview key={item.id} item={item} />
         ))}
@@ -159,10 +203,10 @@ export function MediaUpload({ section, type, label = 'Загрузить мед�
           accept={acceptTypes}
           onChange={handleFileChange}
           className="hidden"
-          id={`upload-${section}`}
+          id={'upload-' + section}
         />
         <label
-          htmlFor={`upload-${section}`}
+          htmlFor={'upload-' + section}
           className="cursor-pointer inline-flex flex-col items-center gap-2"
         >
           <span className="text-3xl">📁</span>
@@ -170,9 +214,34 @@ export function MediaUpload({ section, type, label = 'Загрузить мед�
             {label}
           </span>
           <span className="text-paper/40 text-xs">
-            JPG, PNG, WebP, GIF, MP4, WebM (макс. 5 МБ)
+            Фотографии (JPG, PNG, WebP) до 20 МБ
           </span>
         </label>
+
+        {(type === 'video' || type === 'both') && (
+          <div className="mt-4 pt-4 border-t border-gold/20 max-w-md mx-auto">
+            <p className="font-condensed text-gold/80 text-xs uppercase tracking-wider mb-2">
+              Или добавьте видео по ссылке (VK Видео / Rutube):
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder="https://vk.com... или https://rutube.ru..."
+                className="flex-1 bg-dark-green/80 border border-gold/30 rounded px-3 py-2 text-paper text-xs font-slab placeholder:text-paper/30 focus:outline-none focus:border-gold"
+              />
+              <button
+                type="button"
+                onClick={handleAddVideoLink}
+                className="px-3 py-2 bg-army-red text-white rounded text-xs font-condensed font-bold uppercase tracking-wider hover:bg-army-red/80 transition-all"
+              >
+                + Добавить
+              </button>
+            </div>
+          </div>
+        )}
+
         {isLoading && (
           <div className="mt-2 text-gold text-sm">Загрузка и сжатие...</div>
         )}
@@ -197,7 +266,7 @@ export function MediaUpload({ section, type, label = 'Загрузить мед�
                 ×
               </button>
               <div className="text-paper/30 text-xs mt-1">
-                {item.name} • {(item.size / 1024).toFixed(1)} КБ
+                {item.name} {item.size > 0 ? '• ' + (item.size / 1024).toFixed(1) + ' КБ' : ''}
               </div>
             </div>
           ))}
@@ -208,6 +277,19 @@ export function MediaUpload({ section, type, label = 'Загрузить мед�
 }
 
 function MediaPreview({ item }: { item: MediaItem }) {
+  if (item.type === 'embed') {
+    return (
+      <div className="w-full max-w-2xl mx-auto aspect-video rounded border border-gold/20 overflow-hidden bg-black">
+        <iframe
+          src={item.dataUrl}
+          title={item.name}
+          className="w-full h-full"
+          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+    );
+  }
   if (item.type === 'image') {
     return (
       <img
