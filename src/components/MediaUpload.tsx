@@ -22,14 +22,19 @@ function getEmbedUrl(rawUrl: string): string | null {
   const url = rawUrl.trim();
   if (!url) return null;
 
-  const rutubeMatch = url.match(/rutube\.ru\/(?:video|play\/embed)\/([a-zA-Z0-9_-]+)/);
-  if (rutubeMatch && rutubeMatch) {
-    return 'https://rutube.ru' + rutubeMatch;
+  const rutubeMatch = url.match(/rutube\.ru\/(?:video\/private|video|play\/embed)\/([a-zA-Z0-9_-]+)/);
+  const rutubeId = rutubeMatch?.at(1);
+  if (rutubeId) {
+    const pMatch = url.match(/[?&]p=([a-zA-Z0-9_-]+)/);
+    const pParam = pMatch?.at(1) ? '?p=' + pMatch.at(1) : '';
+    return 'https://rutube.ru' + rutubeId + pParam;
   }
 
   const vkMatch = url.match(/(?:vk\.com|vkvideo\.ru)\/(?:video|clip)(-?\d+)_(\d+)/);
-  if (vkMatch && vkMatch && vkMatch) {
-    return 'https://vk.com' + vkMatch + '&id=' + vkMatch + '&hd=2';
+  const vkOid = vkMatch?.at(1);
+  const vkId = vkMatch?.at(2);
+  if (vkOid && vkId) {
+    return 'https://vk.com' + vkOid + '&id=' + vkId + '&hd=2';
   }
 
   if (url.includes('video_ext.php') || url.includes('/play/embed/')) {
