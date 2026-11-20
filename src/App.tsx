@@ -5,6 +5,7 @@ import { LoginModal } from './components/LoginModal';
 import { AdminPanel } from './components/AdminPanel';
 import { EditableText } from './components/EditableText';
 import { MediaUpload } from './components/MediaUpload';
+import { getRemoteMemories, addRemoteMemory, deleteRemoteMemory } from './utils/supabase';
 import {
   validateMemoryForm,
   recordAttempt,
@@ -55,6 +56,15 @@ function AppContent() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [showSaveNotification, setShowSaveNotification] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+    getRemoteMemories().then((data) => {
+      if (data) {
+        setMemories(data);
+        saveToStorage(STORAGE_KEYS.MEMORIES, data);
+      }
+    });
+  }, []);
+
 
   useEffect(() => {
     initFrameBusting();
