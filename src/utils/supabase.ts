@@ -1,4 +1,4 @@
-const SUPABASE_URL = 'https://supabase.co';
+const SUPABASE_URL = 'https://ryztlrohboimtqpkutzi' + '.supabase.co/rest/v1/memories';
 const SUPABASE_KEY = 'sb_publishable_CtWVccE6keJLSoP1KizH3A_uM0sLED-';
 
 export interface RemoteMemory {
@@ -45,7 +45,7 @@ export async function addRemoteMemory(
     });
     if (!res.ok) return null;
     const created = await res.json();
-    return Array.isArray(created) && created.length > 0 ? created : null;
+    return Array.isArray(created) && created.length > 0 ? created[0] : null;
   } catch {
     return null;
   }
