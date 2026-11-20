@@ -27,14 +27,14 @@ function getEmbedUrl(rawUrl: string): string | null {
   if (rutubeId) {
     const pMatch = url.match(/[?&]p=([a-zA-Z0-9_-]+)/);
     const pParam = pMatch?.at(1) ? '?p=' + pMatch.at(1) : '';
-    return 'https://rutube.ru' + rutubeId + pParam;
+      return ['https://rutube.ru', 'play', 'embed', rutubeId].join('/') + pParam;
   }
 
   const vkMatch = url.match(/(?:vk\.com|vkvideo\.ru)\/(?:video|clip)(-?\d+)_(\d+)/);
   const vkOid = vkMatch?.at(1);
   const vkId = vkMatch?.at(2);
   if (vkOid && vkId) {
-    return 'https://vk.com' + vkOid + '&id=' + vkId + '&hd=2';
+    return ['https://vk.com', 'video_ext.php?oid=' + vkOid + '&id=' + vkId + '&hd=2'].join('/');
   }
 
   if (url.includes('video_ext.php') || url.includes('/play/embed/')) {
