@@ -136,15 +136,6 @@
       "section": "dossier"
     },
     {
-      "id": "hero-embed-1795160619786",
-      "name": "Видео по ссылке",
-      "type": "embed",
-      "dataUrl": "https://rutube.ru/play/embed/3d6ae0056aff93baa0b86a9786208cf1?p=SGmw8Fq-ZDyo0WC_ZAPq9w",
-      "size": 0,
-      "uploadedAt": "2026-11-20T07:43:39.786Z",
-      "section": "hero"
-    },
-    {
       "id": "dossier-1795227603298",
       "name": "2026-11-18-0003.jpg",
       "type": "image",
@@ -190,6 +181,6 @@
       "date": "20 ноября 2026 г."
     }
   ],
-  "exportedAt": "2026-11-21T02:20:41.121Z",
+  "exportedAt": "2026-11-21T02:39:37.179Z",
   "version": "1.0"
 }
