@@ -499,25 +499,6 @@ function AppContent() {
             />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-            {content.timeline.stats.map((stat, i) => (
-              <div
-                key={i}
-                className="text-center p-4 bg-dark-green/50 border border-gold/20 rounded-lg"
-              >
-                <EditableText
-                  path={`timeline.stats[${i}].value`}
-                  value={stat.value}
-                  className="font-display text-2xl md:text-3xl text-gold font-bold block"
-                />
-                <EditableText
-                  path={`timeline.stats[${i}].label`}
-                  value={stat.label}
-                  className="font-condensed text-paper/60 text-xs md:text-sm uppercase tracking-wider mt-1 block"
-                />
-              </div>
-            ))}
-          </div>
 
           <div className="relative">
             <div className="timeline-line"></div>
