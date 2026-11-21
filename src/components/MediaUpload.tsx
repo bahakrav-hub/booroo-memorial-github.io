@@ -22,7 +22,8 @@ function getEmbedUrl(rawUrl: string): string | null {
   const url = rawUrl.trim();
   if (!url) return null;
 
-  const rutubeMatch = url.match(/rutube\.ru\/(?:video\/private|video|play\/embed)\/([a-zA-Z0-9_-]+)/);
+  const rutubeMatch = url.match(/rutube\.ru\/(?:video\/private|video|shorts|play\/embed)\/([a-zA-Z0-9_-]+)/);
+
   const rutubeId = rutubeMatch?.at(1);
   if (rutubeId) {
     const pMatch = url.match(/[?&]p=([a-zA-Z0-9_-]+)/);
