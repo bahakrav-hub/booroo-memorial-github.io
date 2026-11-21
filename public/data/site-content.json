@@ -1,7 +1,7 @@
 {
   "content": {
     "hero": {
-      "warYears": "1941 — 1942",
+      "warYears": "1917 — 1942",
       "lastName": "Софронов",
       "firstName": "Прокопий",
       "patronymic": "Афанасьевич",
@@ -146,6 +146,6 @@
     }
   ],
   "memories": [],
-  "exportedAt": "2026-11-21T01:16:12.100Z",
+  "exportedAt": "2026-11-21T01:17:12.924Z",
   "version": "1.0"
 }
