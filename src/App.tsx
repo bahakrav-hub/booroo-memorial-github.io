@@ -702,7 +702,15 @@ function AppContent() {
                   className="px-6 py-3 bg-army-red border border-army-red text-white font-condensed font-bold uppercase tracking-wider text-sm rounded hover:bg-army-red/80 transition-all duration-300 shadow-lg shadow-army-red/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   🕯️ Оставить память
-                </button>
+                </button>                <a
+                  href="https://docs.google.com/forms/d/e/1FAIpQLSdR3xmCeAsQcM17gHAZSTUNsSjHhbMtUOSGdJQhn75L7akZ3g/viewform?usp=publish-editor"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-6 py-3 bg-khaki border border-gold/40 text-gold font-condensed font-bold uppercase tracking-wider text-sm rounded hover:bg-khaki/80 hover:border-gold transition-all duration-300 inline-flex items-center gap-2"
+                >
+                  📝 Заполнить Google Форму <span className="text-xs">↗</span>
+                </a>
+
                 {isSubmitted && (
                   <span className="text-gold font-condensed text-sm animate-fade-in-up">
                     ✓ Спасибо! Ваша запись добавлена.
