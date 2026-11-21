@@ -456,13 +456,6 @@ function AppContent() {
               </div>
             </div>
 
-            <div className="border-t-2 border-ink/20 pt-4 mb-6">
-              <h4 className="font-condensed text-ink text-sm uppercase tracking-wider mb-4 font-bold">
-                🎖️ Награды
-              </h4>
-              <AwardsEditor />
-            </div>
-
             <div className="border-t border-ink/10 pt-4">
               <EditableText
                 path="dossier.footerNote"
