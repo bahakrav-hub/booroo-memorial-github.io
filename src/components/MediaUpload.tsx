@@ -283,6 +283,8 @@ export function MediaUpload({ section, type, label = 'Загрузить мед�
 }
 
 function MediaPreview({ item }: { item: MediaItem }) {
+  const [isOpen, setIsOpen] = useState(false);
+
   if (item.type === 'embed') {
     return (
       <div className="w-full max-w-2xl mx-auto aspect-video rounded border border-gold/20 overflow-hidden bg-black">
@@ -296,16 +298,52 @@ function MediaPreview({ item }: { item: MediaItem }) {
       </div>
     );
   }
+
   if (item.type === 'image') {
     return (
-      <img
-        src={item.dataUrl}
-        alt={item.name}
-        className="w-full max-h-64 object-contain rounded border border-gold/20 bg-dark-green/50"
-        loading="lazy"
-      />
+      <>
+        <div className="relative group inline-block w-full">
+          <img
+            src={item.dataUrl}
+            alt={item.name}
+            onClick={() => setIsOpen(true)}
+            className="w-full max-h-64 object-contain rounded border border-gold/20 bg-dark-green/50 cursor-zoom-in hover:border-gold/60 transition-all"
+            loading="lazy"
+          />
+          <button
+            type="button"
+            onClick={() => setIsOpen(true)}
+            className="mt-1 text-xs font-condensed text-gold/70 hover:text-gold flex items-center justify-center gap-1 mx-auto"
+          >
+            🔍 Нажмите, чтобы увеличить
+          </button>
+        </div>
+
+        {isOpen && (
+          <div
+            onClick={() => setIsOpen(false)}
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out"
+          >
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="fixed top-4 right-4 w-10 h-10 bg-army-red text-white rounded-full flex items-center justify-center text-2xl font-bold hover:bg-army-red/80 shadow-lg z-50"
+              aria-label="Закрыть"
+            >
+              ×
+            </button>
+            <img
+              src={item.dataUrl}
+              alt={item.name}
+              onClick={(e) => e.stopPropagation()}
+              className="max-w-full max-h-[90vh] object-contain rounded-lg border border-gold/30 shadow-2xl cursor-default"
+            />
+          </div>
+        )}
+      </>
     );
   }
+
   return (
     <video
       src={item.dataUrl}
@@ -317,3 +355,4 @@ function MediaPreview({ item }: { item: MediaItem }) {
     </video>
   );
 }
+
