@@ -499,7 +499,7 @@ function AppContent() {
               className="font-condensed text-paper/60 uppercase tracking-widest text-sm block"
             />
           </div>
-
+       <WarriorMap />
 
           <div className="relative">
             <div className="timeline-line"></div>
