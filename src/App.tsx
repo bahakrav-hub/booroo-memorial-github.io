@@ -5,6 +5,7 @@ import { LoginModal } from './components/LoginModal';
 import { AdminPanel } from './components/AdminPanel';
 import { EditableText } from './components/EditableText';
 import { MediaUpload } from './components/MediaUpload';
+import { WarriorMap } from './components/WarriorMap';
 import { getRemoteMemories, addRemoteMemory, deleteRemoteMemory } from './utils/supabase';
 import {
   validateMemoryForm,
